@@ -1,0 +1,6 @@
+*.csv
+*.npy
+*.png
+*.txt
+
+__pycache__/
