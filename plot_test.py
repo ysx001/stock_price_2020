@@ -13,7 +13,11 @@ data = StockData("train_data.csv")
 from merge_data import expand_pred
 from metrics import mse_by_day
 import seaborn as sns
-methods = ['baseline', 'arima', 'arima_ind', 'rf', 'lstm']
+methods = ['baseline', 'arima', 'arima_ind', 'rf', 'rf_3_feat', 'lstm', 'lstm_3_feat']
+p1_mse = np.zeros((len(methods), len(data.symbol_list)))
+p2_mse = np.zeros((len(methods), len(data.symbol_list)))
+avg_mse = np.zeros((len(methods), len(data.symbol_list)))
+
 sns.set_context("notebook", font_scale=2, rc={"lines.linewidth": 2.5})
 attr_name = 'open'
 fig, axs = plt.subplots(2, 5, figsize=(70, 30))
@@ -24,14 +28,23 @@ for sym in data.symbol_list:
     row = idx // 5
     col = idx % 5
     axs[row, col].plot(real, label="real stock price")
+    m_idx = 0
     for method in methods:
         pred = np.load(f'{method}_{sym}_pred.npy')
         pred = expand_pred(pred, 720)
         mses = mse_by_day(real=real, pred=pred, mod='5sec')
         axs[row, col].plot(pred, label=f'{method} pred price p1_mse={np.mean(mses[0:4]): .3f} p2_mse={np.mean(mses[4:]): .3f}')
+        p1_mse[m_idx, idx] = np.mean(mses[0:4])
+        p2_mse[m_idx, idx] = np.mean(mses[4:])
+        avg_mse[m_idx, idx] = np.mean(mses)
+        m_idx += 1
     axs[row, col].set_title(f'{sym} method comparison', fontsize=36)
     axs[row, col].legend()
     idx += 1
+np.savetxt("p1_mse_pred.csv", p1_mse, delimiter=",")
+np.savetxt("p2_mse_pred.csv", p2_mse, delimiter=",")
+np.savetxt("avg_mse_pred.csv", avg_mse, delimiter=",")
+
 for ax in axs.flat:
     ax.set(xlabel='hours', ylabel='price')
 # fig.suptitle('Comparison of different methods on training test data', fontsize=20)
@@ -45,6 +58,10 @@ eval = Evaluator('test_solutions.csv')
 from merge_data import expand_pred
 from metrics import mse_by_day
 sns.set_context("notebook", font_scale=2, rc={"lines.linewidth": 2.5})
+
+p1_mse = np.zeros((len(methods), len(data.symbol_list)))
+p2_mse = np.zeros((len(methods), len(data.symbol_list)))
+avg_mse = np.zeros((len(methods), len(data.symbol_list)))
 attr_name = 'open'
 fig, axs = plt.subplots(2, 5, figsize=(70, 30))
 idx = 0
@@ -57,17 +74,26 @@ for sym in data.symbol_list:
     row = idx // 5
     col = idx % 5
     axs[row, col].plot(real, label="real stock price")
+    m_idx = 0
     for method in methods:
         pred = np.load(f'{method}_{sym}_pred_real.npy')
         pred = expand_pred(pred, 720)
         print(pred.shape)
         mses = mse_by_day(real=real, pred=pred, mod='5sec')
         axs[row, col].plot(pred, label=f'{method} pred price p1_mse={np.mean(mses[0:4]): .3f} p2_mse={np.mean(mses[4:]): .3f}')
+        p1_mse[m_idx, idx] = np.mean(mses[0:4])
+        p2_mse[m_idx, idx] = np.mean(mses[4:])
+        avg_mse[m_idx, idx] = np.mean(mses)
+        m_idx += 1
     axs[row, col].set_title(f'{sym} method comparison', fontsize=36)
     axs[row, col].legend()
     idx += 1
 for ax in axs.flat:
     ax.set(xlabel='hours', ylabel='price')
+
+np.savetxt("p1_mse_pred_real.csv", p1_mse, delimiter=",")
+np.savetxt("p2_mse_pred_real.csv", p2_mse, delimiter=",")
+np.savetxt("avg_mse_pred_real.csv", avg_mse, delimiter=",")
 # fig.suptitle('Comparison of different methods on training test data', fontsize=20)
 plt.tight_layout()
 plt.savefig(f'test_real.png')

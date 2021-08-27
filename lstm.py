@@ -112,7 +112,7 @@ attr_name = 'open'
 epoch = 100
 for sym in data.symbol_list:
     # before submission
-    ind = eval.solutions[eval.solutions.index.str.contains(sym)]
+    # ind = eval.solutions[eval.solutions.index.str.contains(sym)]
     X_train_all, Y_train, all_inputs = get_all_training_data(data, attr_name, (0, 77), train_len, pred_len)
     print(X_train_all.shape, Y_train.shape, all_inputs.shape)
 
@@ -156,4 +156,49 @@ for sym in data.symbol_list:
     # plt.savefig(f'./lstm_{sym}_pred_real_epoch_{epoch}.png')
     # plt.close('all')
 
+# %%
+# one feature only
+train_len = 63
+pred_len = 63
+attr_name = 'open'
+epoch = 100
+for sym in data.symbol_list:
+    # before submission
+    # ind = eval.solutions[eval.solutions.index.str.contains(sym)]
+    train_data = get_aggr_data(data, attr_name, (0, 77), sym, 720)
+    X_train, Y_train = format_training_data(train_data,
+                                            train_len=train_len,
+                                            pred_len=pred_len)
+    inputs = train_data[len(train_data) - train_len:]
+    inputs = inputs.reshape(1, -1, 1)
+    model = get_lstm_model(train_len, pred_len, num_features=3)
+    model.summary()
+    model.fit(X_train, Y_train, epochs=epoch, batch_size=32)
+
+    sym_min = min(getattr(data, attr_name)[sym].to_list())
+    sym_max = max(getattr(data, attr_name)[sym].to_list())
+    mean = np.mean(getattr(data, attr_name)[sym].to_list())
+    
+
+    pred = model.predict(inputs).flatten()
+    pred = pred * sym_max + sym_min
+    print(pred.shape)
+    np.save(f"lstm_{sym}_pred.npy", pred)
+    break
+    
+    train_data = get_aggr_data(data, attr_name, (0, 86), sym, 720)
+    X_train, Y_train = format_training_data(train_data,
+                                            train_len=train_len,
+                                            pred_len=pred_len)
+    inputs = train_data[len(train_data) - train_len:]
+    inputs = inputs.reshape(1, -1, 1)
+
+    model = get_lstm_model(train_len, pred_len, num_features=3)
+    # model.summary()
+    model.fit(X_train_all, Y_train, epochs=epoch, batch_size=32)
+    
+    pred = model.predict(all_inputs).flatten()
+    pred = pred * sym_max + sym_min
+    
+    np.save(f"lstm_{sym}_pred_real.npy", pred)
 # %%
